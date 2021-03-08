@@ -179,7 +179,7 @@ const PREFIX = `
         xy = (xy*0.85+0.25) * normViewSize;
  
         float nxy = length(xy);
-        float zoom = 20.0; ///(nxy*nxy);
+        float zoom = 22.0; ///(nxy*nxy);
         // xy = cmul(xy, xy);
         // xy = cmul(xy, xy);
         xy *= 160.0;
