@@ -179,13 +179,15 @@ const PREFIX = `
         xy = (xy*0.85+0.25) * normViewSize;
  
         float nxy = length(xy);
-        float zoom = 4.0/(nxy*nxy);
-        xy = cmul(xy, xy);
-        xy = cmul(xy, xy);
+        float zoom = 20.0; ///(nxy*nxy);
+        // xy = cmul(xy, xy);
+        // xy = cmul(xy, xy);
         xy *= 160.0;
         vec4 r = getHex(xy);
         cellXY = r.zw;
         p = r.xy;
+        //p = xy;
+        //cellXY = xy;
         return zoom;
     }
 `;
@@ -415,7 +417,7 @@ const PROGRAMS = {
 
                 p = mat2(c, s, -s, c) * p;    
 
-                if (12.0 < zoom) {
+                if (22.0 < zoom) {
                     float da = PI/12.0;
                     float a = -da;
                     vec4 v4;
@@ -501,12 +503,12 @@ export class CA {
         this.shuffledMode = true;
 
         this.rotationAngle = 0.0;
-        this.alignment = 1;
+        this.alignment = 3;
         this.fuzz = 8.0;
         this.perceptionCircle = 0.0;
         this.arrowsCoef = 0.0;
         this.visMode = 'color';
-        this.hexGrid = 1.0;
+        this.hexGrid = 0.0;
         this.devicePixelRatio = window.devicePixelRatio || 1;
  
         this.layers = [];

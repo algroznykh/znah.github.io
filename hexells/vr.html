@@ -1,106 +1,25 @@
-<!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-<script src="twgl-full.min.js"></script>
-<script src="dat.gui.min.js"></script>
-<script src="ca.js" type="module"></script>
+<!DOCTYPE html>
+<html>
 
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-15552566-1"></script>
+<head>
+	<meta charset="utf-8">
+	<title>hexells vr</title>
+	<script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+	<script src="dat.gui.min.js"></script>
+	<script src="twgl-full.min.js"></script>
+</head>
 <script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
+  AFRAME.registerComponent('draw-canvas', {
+    schema: {default: ''},
 
-gtag('config', 'UA-15552566-1');
+    init: function () {
+      this.canvas = document.getElementById(this.data);
+      this.ctx = this.canvas.getContext('webgl');
+
+      // Draw on canvas...
+    }
+  });
 </script>
-
-
-<style>
-html, body {
-  margin: 0px;
-  font-family: 'Google Sans', Arial, Helvetica, sans-serif;
-  color: #FFF;
-}
-canvas {
-  width: 100vw;
-  height: 100vh;
-}
-
-#fsButton {
-  position: fixed;
-  z-index: 10;
-  bottom: 20px; left:20px;
-}
-
-.centered { 
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-#info{
-  width: 300px;
-  background-color: rgba(0, 0, 0, 0.75);
-  padding: 20px;
-  z-index:5;
-}
-
-a:link {
-  color: red;
-}
-
-a:visited {
-  color: red;
-}
-
-.hint {
-  font-size: min(10vw, 8vh);
-  pointer-events: none;
-  white-space: nowrap;
-  opacity: 0;
-}
-
-.hint-anim {
-  animation: fadeIn linear 2s;
-}
-@keyframes fadeIn {
-  0% {opacity:0;}
-  10% {opacity:1;}
-  90% {opacity:1;}
-  100% {opacity:0;}
-}
-</style>
-
-<div id='hint' class='centered hint'>⇦ Swipe ⇨</div>
-
-<div id='info' class='centered'>
-  <p> <b style="font-size: large;">Hexells</b>
-  <span style="font-size: smaller;">by <a href="https://twitter.com/zzznah">Alexander Mordvintsev</a><span>
-
-  <p>
-    is a Self-Organising System of cells, that was trained to build textures
-    using neighbour communication only. This work exposes the relation between
-    the life an individual cell, and the cell collective as a whole.
-  </p>
-  <p>     The system is based on the 
-    <a href="https://distill.pub/2020/growing-ca/">Neural Cellular Automata</a>.
-</p>
-
-<p style="font-size: large;">
-  Touch to interact; swipe left or right to change the pattern.
-</p>
-
-<div id="hideBtn" style="text-align: center;"><button>Hide</button></div>
-</div>
-
-<canvas id="glCanvas"></canvas>
-<button id="fsButton">Fullscreen</button>
-
-
-<!-- <img id="icons" src="icons.jpeg"></img><br>
-<pre id="log"></pre> -->
 
 <script type="module">
   import { CA } from "./ca.js"
@@ -108,6 +27,8 @@ a:visited {
   const $ = q=>document.querySelector(q);
 
   const canvas = $('#glCanvas');
+
+  console.log('canvas', canvas);
 
   const requestFullscreen = canvas.requestFullscreen
       || canvas.webkitRequestFullscreen || canvas.msRequestFullscreen;
@@ -127,15 +48,11 @@ a:visited {
     }
   };
   
-  $('#hideBtn').onclick = ()=>{
-    $('#info').style.display = 'none';
-    $('#hint').classList.add('hint-anim');
-
-  };
 
   const gl = canvas.getContext("webgl");
+  console.log('gl', gl);
   const gui = new dat.GUI();
-  //gui.hide();
+  gui.hide();
   const param = {
     active: true,
     model: 149,
@@ -149,6 +66,8 @@ a:visited {
   gui.add(param, 'zoom', 1.0, 64.0);
   gui.add(param, 'stepPerFrame', 0, 6);
   gui.add(param, 'paintMode', 0, 6);
+
+  console.log('fetching models');
 
   fetch('models.json').then(r => r.json()).then(models => {
     const onready = ()=>{
@@ -181,6 +100,7 @@ a:visited {
     }
     console.log(initModelIdx);
     ca.paint(0, 0, -1, initModelIdx);
+    console.log('painted');
     let curModel = shuffledModels.indexOf(initModelIdx);
     let gesture = null;
     function startGestue(pos) {
@@ -273,8 +193,10 @@ a:visited {
     gui.add(param, 'benchmark');
 
     function render() {
+      //console.log('render');
       if (param.active) {
         ca.step();
+	//console.log('step');
       }
       
       const devicePixelRatio = window.devicePixelRatio || 1;
@@ -291,3 +213,72 @@ a:visited {
     requestAnimationFrame(render);
   })
 </script>
+
+<script>
+AFRAME.registerShader('my-custom', {
+  schema: {
+    color: {type: 'color', is: 'uniform', default: 'red'},
+    opacity: {type: 'number', is: 'uniform', default: 1.0}
+  },
+  raw: false,
+  vertexShader: `
+	varying vec2 vUv;
+
+	void main() {
+	  vUv = uv;
+	  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+	}
+	`,
+  fragmentShader:
+`
+  // Use medium precision.
+  precision mediump float;
+
+  // This receives the color value from the schema, which becomes a vec3 in the shader.
+  uniform vec3 color;
+
+  // This receives the opacity value from the schema, which becomes a number.
+  uniform float opacity;
+
+  float time = 1.;
+
+  // This is the shader program.
+  // A fragment shader can set the color via gl_FragColor,
+  // or decline to draw anything via discard.
+  void main () {
+    vec2 iResolution = vec2(1024., 1024.);
+    vec2 u = 8.*gl_FragCoord.xy/iResolution.x;
+    
+    vec2 s = vec2(1.,1.732);
+    vec2 a = mod(u     ,s)*2.-s;
+    vec2 b = mod(u+s*.5,s)*2.-s;
+    
+    gl_FragColor = vec4(.5*min(dot(a,a),dot(b,b)));
+
+    // gl_FragColor = vec4(1, 0, 1, 1);
+	  gl_FragColor = mix(
+	    vec4(mod(vUv , 0.05) * 20.0, 1.0, 1.0),
+	    vec4(color, 1.0),
+	    sin(time)
+	  );
+  }
+`
+});
+</script>
+
+<a-scene>
+<a-assets>
+  <canvas id="glCanvas" crossorigin="anonymous"></canvas>
+  <button id="fsButton">FS</button>
+</a-assets>
+
+<a-sky color="orange" material="shader: my-custom; side:double"> 
+
+
+<!-- <a-entity geometry="primitive: sphere" material="src: #glCanvas" draw-canvas="glCanvas"></a-entity> -->
+
+	<a-box color="black" position="0 2 -2"> <!-- material="shader: my-custom; side:double" position="0 2 -2"> -->
+
+</a-scene>
+
+</html>
